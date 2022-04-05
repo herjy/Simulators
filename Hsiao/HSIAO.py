@@ -44,7 +44,7 @@ class Hsiao:
         self.t0 = 55000.
         self.bands = ('ztfg', 'ztfr', 'ztfi')
         self.pers = 5.0/100
-        self.nobs = [91, 90, 30]   #/!\ ds code nb_obs
+        self.nobs = [91, 91, 91]   #/!\ ds code nb_obs
         self.dnobs = [1, 1, 4]
         self.ddnobs = [0.8,0.8,1.2]
         self.model = sncosmo.Model(source = 'hsiao')
@@ -56,7 +56,7 @@ class Hsiao:
         
 #################################################        
         
-    def dT(self):
+    def generated_dt(self):
         
         """
         
@@ -75,7 +75,7 @@ class Hsiao:
     
 #################################################
     
-    def MU(self):
+    def generated_mu(self):
         
         """
         
@@ -94,7 +94,7 @@ class Hsiao:
 
 #################################################
 
-    def Time(self):
+    def generated_time(self):
         
         """
         Return: 
@@ -114,14 +114,16 @@ class Hsiao:
             obs[i, :self.nobs[i]] = obsv + 54965
             
             for k in range(self.images):
-                time[k, i, :self.nobs[i]] = obs[i, :self.nobs[i]] - self.dT()[k]
-                
+                time[k, i, :self.nobs[i]] = obs[i, :self.nobs[i]] - self.generated_dt()[k]
+            
+        #time = time.remove(0)
+            
         return time
     
 
 #################################################
              
-    def Flux(self):
+    def flux(self):
     
         """
             
@@ -143,13 +145,13 @@ class Hsiao:
             
             for i in range(self.images):
                 
-                imfluxes[i,j,:self.nobs[j]] = self.MU()[i] * self.model.bandflux(self.bands[j], self.Time()[i, j, :self.nobs[j]])
+                imfluxes[i,j,:self.nobs[j]] = self.generated_mu()[i] * self.model.bandflux(self.bands[j], self.generated_time()[i, j, :self.nobs[j]])
             
         return imfluxes
     
 #################################################   
     
-    def Total_Flux_Without_Noise(self):
+    def total_flux_without_noise(self):
         
         """
         
@@ -160,13 +162,13 @@ class Hsiao:
             
         """
         
-        TFlux = np.sum(self.Flux() , axis=0)
+        TFlux = np.sum(self.flux() , axis=0)
         
         return TFlux
     
 #################################################
     
-    def Noise(self):
+    def noise(self):
         
         """
         Return:
@@ -178,14 +180,14 @@ class Hsiao:
         Noises = np.zeros((len(self.bands), max(self.nobs)))
         
         for j in range(len(self.bands)):
-            Noises[j,:] = np.full(max(self.nobs), self.pers * np.max(self.Total_Flux_Without_Noise()[j][:])) 
+            Noises[j,:] = np.full(max(self.nobs), self.pers * np.max(self.total_flux_without_noise()[j][:])) 
             Noise=np.random.normal(0,Noises)
     
         return Noise
     
 #################################################
     
-    def Total_Flux_With_Noise(self):
+    def total_flux_with_noise(self):
         
         """
         Return:
@@ -196,13 +198,13 @@ class Hsiao:
         """
         
         TFluxN = np.zeros((len(self.bands), max(self.nobs)))
-        TFluxN = self.Noise() + self.Total_Flux_Without_Noise()
+        TFluxN = self.noise() + self.total_flux_without_noise()
         
         return TFluxN
 
 #################################################
 
-    def Graph(self):
+    def graph(self):
         
         """
         Return:
@@ -216,19 +218,19 @@ class Hsiao:
             
             if (self.datatype == 'Flux'):
                 for j in range(self.images):
-                    ax.plot(self.Flux()[j][i][:], label = f'{self.bands[i]} : image {j}')
+                    ax.plot(self.flux()[j][i][:], label = f'{self.bands[i]} : image {j}')
                     ax.set_ylabel('Flux (photon / s / cm2)')
                     
             elif (self.datatype == 'Total_Flux_Without_Noise'):
-                ax.plot(self.Total_Flux_Without_Noise()[i], label = self.bands[i])
+                ax.plot(self.total_flux_without_noise()[i], label = self.bands[i])
                 ax.set_ylabel('Total flux (photon / s / cm2)')
                 
             elif (self.datatype == 'Noise'):
-                ax.plot(self.Noise()[i], label = self.bands[i])
+                ax.plot(self.noise()[i], label = self.bands[i])
                 ax.set_ylabel('Noise')
                 
             else:
-                ax.plot(self.Total_Flux_With_Noise()[i], label = self.bands[i])
+                ax.plot(self.total_flux_with_noise()[i], label = self.bands[i])
                 ax.set_ylabel('Total flux with noise (photon / s / cm2)')
                 
         ax.set_xlabel('Days')
@@ -239,28 +241,37 @@ class Hsiao:
 
 #################################################
 
-    # def Time_delays(self):
+    def time_delays(self):
         
-    #     """
+        """
         
-    #     Return:
-    #     -------
-    #     df: 'Dataframe'
-    #         Time delays between a image and the next one for each band. 
+        Return:
+        -------
+        df: 'Dataframe'
+            Time delays between an image and the next one for each band. 
+            They are calculated according to the maximum value reached by the flux. 
+            
+            Perhaps the calculation mode should be changed, 
+            or perhaps time delays should be calculated by interpolating the flux curves
         
-    #     """
+        """
         
-    #     TD = np.zeros(self.images -1, len(self.bands))
-    #     for i in range(self.images - 1):
-    #         for j in range(len(self.bands)):
-    #             #formule time delay 
+        TD = np.zeros((self.images -1, len(self.bands)))
+        TDBis = np.zeros((self.images -1, len(self.bands)))
+        t = self.generated_time()
+        f = self.flux()
         
-    #      retrun df
+        for i in range(self.images - 1):
+            for j in range(len(self.bands)):
+                
+                index1 = np.argmax(f[i, j, :])
+                index2 = np.argmax(f[i+1, j, :])
+                TD[i, j] = abs(t[i, j, index1] - t[i+1, j, index2])
+                TDBis[i, j] = abs(index1 - index2)
         
+        df = pd.DataFrame(TD, columns = ['Band g', 'Band r', 'Band i'])
+        
+        return df
 
-    
-    
-    
-    
     
         
