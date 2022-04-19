@@ -114,9 +114,9 @@ class Hsiao:
             
         """
 
-        np.random.seed(202)
-        seedsn = np.random.randint(0,100000) 
-        np.random.seed(seedsn)
+        # np.random.seed(202)
+        # seedsn = np.random.randint(0,100000) 
+        # np.random.seed(seedsn)
         
         self.model.set(z = self.redshift, t0 = self.t0, amplitude = self.amplitude)
 
@@ -198,24 +198,24 @@ class Hsiao:
             
             if (self.datatype == 'Flux'):
                 for j in range(self.nb_images):
-                    ax.plot(self.generated_time()[j, :, i], self.flux()[j][i][:], label = f'{self.bands[i]} : image {j}')
+                    ax.plot( self.generated_time()[j, :, i], self.flux()[j][i][:], label = f'{self.bands[i]} : image {j}')
                     ax.set_ylabel('Flux (photon / s / cm2)')
                     
             elif (self.datatype == 'Total_Flux_Without_Noise'):
-                ax.plot(self.generated_time()[2], self.total_flux_without_noise()[i], label = self.bands[i])
+                ax.plot(self.generated_time()[2, :, i], self.total_flux_without_noise()[i], label = self.bands[i])
                 ax.set_ylabel('Total flux (photon / s / cm2)')
                 
             elif (self.datatype == 'Noise'):
-                ax.plot(self.generated_time()[2], self.noise()[i], label = self.bands[i])
+                ax.plot(self.generated_time()[2, :, i], self.generated_noise()[i], label = self.bands[i])
                 ax.set_ylabel('Noise')
                 
             else:
-                ax.plot(self.generated_time()[2], self.total_flux_with_noise()[i], label = self.bands[i])
+                ax.plot(self.generated_time()[2, :, i], self.total_flux_with_noise()[i], label = self.bands[i])
                 ax.set_ylabel('Total flux with noise (photon / s / cm2)')
                 
         ax.set_xlabel('Days')
         ax.set_title(f'{self.nb_images} images')
-        ax.legend()
+        ax.legend(loc='best')
                 
         return ax
 
@@ -291,7 +291,7 @@ class Hsiao:
         Return:
         -------
         
-        df_truth: 'dataframe'   shape(1, 7)
+        df_truth: 'dataframe'   shape(1, 8)
             Composed of data used to generate time samples and flux
             
         df_data: 'dataframe'  shape(number of observations, 7)
@@ -299,18 +299,19 @@ class Hsiao:
         
         """
         df_truth = pd.DataFrame(
-                ["-".join([str(self.nb_images), str(self.t0), str(self.redshift), str(self.pers)]),
+                ["-".join([str(self.nb_images), str(self.amplitude), str(self.redshift), str(self.pers)]),
                 self.nb_images, 
                 self.t0, 
+                self.amplitude,
                 str(self.dt), 
                 str(self.mu), 
                 self.redshift, 
                 self.pers], 
-                index = [ "ID", "# images", "time origin", "time delays", "magnifications", "redshift", "noise level" ]
+                index = [ "ID", "images", "time origin", "amplitude", "time delays", "magnifications", "redshift", "noise level" ]
             )
         
         df_data = pd.DataFrame(data=
-            {   "ID" : "-".join([str(self.nb_images),str(self.t0), str(self.redshift), str(self.pers)]),
+            {   "ID" : "-".join([str(self.nb_images),str(self.amplitude), str(self.redshift), str(self.pers)]),
                 "time sample band g": self.generated_time()[-1, :, 0],
                 "total flux + noise band g": self.total_flux_with_noise()[0], 
                 "time sample band r": self.generated_time()[-1, :, 1],
@@ -333,7 +334,6 @@ class Hsiao:
 
 
 
-
-
-
-
+H = Hsiao(3, 0.4, 1e-4, "Flux", np.array([1.2, 1.3, 1.42]), np.array([0, 10.3, 25.3]), 55000, 0.05)
+ 
+C=  Hsiao(3, 0.5, 1e-2, "Flux", np.array([1.2, 1.3, 1.42]), np.array([0, 10.3, 25.3]), 55000., 0.0512)
