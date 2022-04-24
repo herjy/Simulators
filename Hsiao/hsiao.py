@@ -311,19 +311,17 @@ class Hsiao:
         
         """
         df_truth = pd.DataFrame(
-                [self.nb_images * self.amplitude * self.redshift* self.pers,
+                [self.nb_images * self.amplitude * self.redshift +  self.pers,
                 self.nb_images, 
                 self.t0, 
                 self.amplitude,
-                str(self.dt), 
-                str(self.mu), 
                 self.redshift, 
                 self.pers], 
-                index = [ "ID", "images", "time origin", "amplitude", "time delays", "magnifications", "redshift", "noise level" ]
+                index = [ "ID", "images", "time origin", "amplitude", "redshift", "noise level" ]
             )
         
         df_data = pd.DataFrame(data=
-            {   "ID": self.nb_images * self.amplitude* self.redshift * self.pers,
+            {   "ID": self.nb_images * self.amplitude* self.redshift + self.pers,
                 "images" : self.nb_images,
                 "time sample band g": self.generated_time()[-1, :, 0],
                 "total flux + noise band g": self.total_flux_with_noise()[0], 
