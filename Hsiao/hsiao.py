@@ -61,7 +61,7 @@ class Hsiao:
 #################################################
  
     def __init__(self, nb_images, redshift, amplitude, datatype, mu, dt, t0, noiselevel,  
-                 nobs = np.array([91, 90, 30]), dnobs = np.array([1, 1, 4]), ddnobs = np.array([0.8,0.8,1.2]) ):
+                 nobs = np.array([91, 90, 30]), dnobs = np.array([1, 1, 4]), ddnobs = np.array([0.8,0.8,1.2]), ID = None ):
         
         self.redshift = redshift
         self.nb_images = nb_images
@@ -76,6 +76,7 @@ class Hsiao:
         self.dnobs = dnobs
         self.ddnobs = ddnobs
         self.model = sncosmo.Model(source = 'hsiao') 
+        self.ID = ID
     
 #################################################
 
@@ -161,8 +162,10 @@ class Hsiao:
         Noise: 'array'  shape(3, 91)
             Generated noise proportionnal to 'noise_level' percentage of the maximum flux
         """
+        
         noises = np.full((len(self.bands), max(self.nobs)), self.pers*np.nanmax(self.total_flux_without_noise()))
-        Noise = np.random.normal(0, noises)
+
+        Noise = np.random.normal(noises/2, noises/4)
     
         return Noise
     
@@ -222,40 +225,6 @@ class Hsiao:
 
 #################################################
 
-    def time_delays(self):
-        
-        """
-        
-        Return:
-        -------
-        df: 'Dataframe'
-            Time delays between an image and the next one for each band. 
-            They are calculated according to the maximum value reached by the flux. 
-            
-            Perhaps the calculation mode should be changed, 
-            or perhaps time delays should be calculated by interpolating the flux curves
-        
-        """
-        
-        TD = np.zeros((self.nb_images -1, len(self.bands)))
-        TDBis = np.zeros((self.images -1, len(self.bands)))
-        t = self.generated_time()
-        f = self.flux()
-        
-        for i in range(self.nb_images - 1):
-            for j in range(len(self.bands)):
-                
-                index1 = np.argmax(f[i, j, :])
-                index2 = np.argmax(f[i+1, j, :])
-                TD[i, j] = abs(t[i, j, index1] - t[i+1, j, index2])
-                TDBis[i, j] = abs(index1 - index2)
-        
-        df = pd.DataFrame(TD, columns = ['Band g', 'Band r', 'Band i'])
-        
-        return df
-    
-#################################################
-
     def dataframe(self):
         
         """
@@ -270,7 +239,9 @@ class Hsiao:
             Composed  of generated data such as time samples for each bands and total flux with noise
         
         """
-        df_truth = pd.DataFrame(
+        if self.ID == None:
+            
+            df_truth = pd.DataFrame(
                 ["-".join([str(self.nb_images), str(self.amplitude), str(self.redshift), str(self.pers)]),
                 self.nb_images, 
                 self.t0, 
@@ -282,8 +253,8 @@ class Hsiao:
                 index = [ "ID", "images", "time origin", "amplitude", "time delays", "magnifications", "redshift", "noise level" ]
             )
         
-        df_data = pd.DataFrame(data=
-            {   "ID" : "-".join([str(self.nb_images),str(self.amplitude), str(self.redshift), str(self.pers)]),
+            df_data = pd.DataFrame(data=
+               {   "ID" : "-".join([str(self.nb_images),str(self.amplitude), str(self.redshift), str(self.pers)]),
                 "time sample band g": self.generated_time()[-1, :, 0],
                 "total flux + noise band g": self.total_flux_with_noise()[0], 
                 "time sample band r": self.generated_time()[-1, :, 1],
@@ -292,36 +263,22 @@ class Hsiao:
                 "total flux + noise band i": self.total_flux_with_noise()[2],
                 }
             )
-        return df_truth.T, df_data
         
-#################################################
-
-    def dataframe2(self):
-        
-        """
-        
-        Return:
-        -------
-        
-        df_truth: 'dataframe'   shape(1, 7)
-            Composed of data used to generate time samples and flux
-            
-        df_data: 'dataframe'  shape(number of observations, 7)
-            Composed  of generated data such as time samples for each bands and total flux with noise
-        
-        """
-        df_truth = pd.DataFrame(
-                [self.nb_images * self.amplitude * self.redshift +  self.pers,
+        else:
+            df_truth = pd.DataFrame(
+                [self.ID,
                 self.nb_images, 
                 self.t0, 
                 self.amplitude,
+                str(self.dt), 
+                str(self.mu), 
                 self.redshift, 
                 self.pers], 
-                index = [ "ID", "images", "time origin", "amplitude", "redshift", "noise level" ]
+                index = [ "ID", "images", "time origin", "amplitude", "time delays", "magnifications", "redshift", "noise level" ]
             )
         
-        df_data = pd.DataFrame(data=
-            {   "ID": self.nb_images * self.amplitude* self.redshift + self.pers,
+            df_data = pd.DataFrame(data=
+               { "ID" : self.ID,
                 "images" : self.nb_images,
                 "time sample band g": self.generated_time()[-1, :, 0],
                 "total flux + noise band g": self.total_flux_with_noise()[0], 
@@ -331,9 +288,124 @@ class Hsiao:
                 "total flux + noise band i": self.total_flux_with_noise()[2],
                 }
             )
+        
+        
+        
         return df_truth.T, df_data
+        
+#################################################
+
+
+
+    def dataframeF(self):
+        
+        """
+        
+        Return:
+        -------
+        
+        df_truth: 'dataframe'   shape(1, 8)
+            Composed of data used to generate time samples and flux
+            
+        df_data: 'dataframe'  shape(number of observations, 7)
+            Composed  of generated data such as time samples for each bands and total flux with noise
+        
+        """
+        if self.ID == None:
+            
+            df_truth = pd.DataFrame(
+                ["-".join([str(self.nb_images), str(self.amplitude), str(self.redshift), str(self.pers)]),
+                self.nb_images, 
+                self.t0, 
+                self.amplitude,
+                str(self.dt), 
+                str(self.mu), 
+                self.redshift, 
+                self.pers], 
+                index = [ "ID", "images", "time origin", "amplitude", "time delays", "magnifications", "redshift", "noise level" ]
+            )
+        
+            df_data = pd.DataFrame(data=
+               {   "ID" : "-".join([str(self.nb_images),str(self.amplitude), str(self.redshift), str(self.pers)]),
+                "time sample band g": self.generated_time()[-1, :, 0],
+                "total flux + noise band g": self.total_flux_without_noise()[0], 
+                "time sample band r": self.generated_time()[-1, :, 1],
+                "total flux + noise band r": self.total_flux_without_noise()[1],
+                "time sample band i": self.generated_time()[-1, :, 2],
+                "total flux + noise band i": self.total_flux_without_noise()[2],
+                }
+            )
+        
+        else:
+            df_truth = pd.DataFrame(
+                [self.ID,
+                self.nb_images, 
+                self.t0, 
+                self.amplitude,
+                str(self.dt), 
+                str(self.mu), 
+                self.redshift, 
+                self.pers], 
+                index = [ "ID", "images", "time origin", "amplitude", "time delays", "magnifications", "redshift", "noise level" ]
+            )
+        
+            df_data = pd.DataFrame(data=
+               { "ID" : self.ID,
+                "images" : self.nb_images,
+                "time sample band g": self.generated_time()[-1, :, 0],
+                "total flux + noise band g": self.total_flux_without_noise()[0], 
+                "time sample band r": self.generated_time()[-1, :, 1],
+                "total flux + noise band r": self.total_flux_without_noise()[1],
+                "time sample band i": self.generated_time()[-1, :, 2],
+                "total flux + noise band i": self.total_flux_without_noise()[2],
+                }
+            )
+        
+        
+        
+        return df_truth.T, df_data
+
+
+
+#############################
+    # def dataframe2(self):
+        
+    #     """
+        
+    #     Return:
+    #     -------
+        
+    #     df_truth: 'dataframe'   shape(1, 7)
+    #         Composed of data used to generate time samples and flux
+            
+    #     df_data: 'dataframe'  shape(number of observations, 7)
+    #         Composed  of generated data such as time samples for each bands and total flux with noise
+        
+    #     """
+    #     df_truth = pd.DataFrame(
+    #             [self.nb_images * self.amplitude * self.redshift +  self.pers,
+    #             self.nb_images, 
+    #             self.t0, 
+    #             self.amplitude,
+    #             self.redshift, 
+    #             self.pers], 
+    #             index = [ "ID", "images", "time origin", "amplitude", "redshift", "noise level" ]
+    #         )
+        
+    #     df_data = pd.DataFrame(data=
+    #         {   "ID": self.nb_images * self.amplitude* self.redshift + self.pers,
+    #             "images" : self.nb_images,
+    #             "time sample band g": self.generated_time()[-1, :, 0],
+    #             "total flux + noise band g": self.total_flux_with_noise()[0], 
+    #             "time sample band r": self.generated_time()[-1, :, 1],
+    #             "total flux + noise band r": self.total_flux_with_noise()[1],
+    #             "time sample band i": self.generated_time()[-1, :, 2],
+    #             "total flux + noise band i": self.total_flux_with_noise()[2],
+    #             }
+    #         )
+    #     return df_truth.T, df_data
     
     
     
-H=Hsiao(3, 0.4, 1e-4, "Flux", np.array([1.2, 1.42, 1.52]), np.array([0, 10.34, 24.32]), 55000., 0.05)
+H=Hsiao(4, 1.0028, 0.0246, "Flux", np.array([1.38, 1.34, 1.45, 1.49]), np.array([0, 12.73, 21.37, 30.97]), 55000., 0.007, ID = 1, nobs=np.array([91, 91, 91]))
 
