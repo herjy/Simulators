@@ -4,8 +4,11 @@
 import sncosmo
 import numpy as np
 import matplotlib.pyplot as plt
+
 import pandas as pd
-from scipy.interpolate import interp1d
+
+import random
+
 np.set_printoptions(precision=2)
 
 
@@ -13,6 +16,7 @@ np.set_printoptions(precision=2)
 class Hsiao:
     
     """
+
     
     Data generation (flux, total flux, noise, total flux + noise) 
     about supernova and lensed supernova thanks to Hsiao model. 
@@ -23,6 +27,7 @@ class Hsiao:
     Parameters:
     --------
     nb_images: 'int'
+
         Number of lensed supernova images 
             
     redshift: 'float'
@@ -36,6 +41,7 @@ class Hsiao:
     datatype: 'string'
         Define the data on the graph returned by the Graph function.
         ('Flux', 'Total_Flux_Without_Noise', 'Noise', 'Total_Flux_With_Noise')
+
     
     mu: 'array'  (size = #images)
         Array composed of the magnification value for each supernova image.
@@ -55,6 +61,7 @@ class Hsiao:
     dnobs: 'array' (size = 3)
     ddnobs: 'array' (size = 3)
         Array used to define time steps between two differents observations.
+
     
     """ 
     
@@ -80,6 +87,7 @@ class Hsiao:
     
 #################################################
 
+
     def generated_time(self):
         
         """
@@ -102,6 +110,7 @@ class Hsiao:
         
         return ts_image
      
+
 #################################################
              
     def flux(self):
@@ -154,7 +163,9 @@ class Hsiao:
     
 #################################################
     
+
     def generated_noise(self):
+
         
         """
         Return:
@@ -166,6 +177,7 @@ class Hsiao:
         noises = np.full((len(self.bands), max(self.nobs)), self.pers*np.nanmax(self.total_flux_without_noise()))
 
         Noise = np.random.normal(noises/2, noises/4)
+
     
         return Noise
     
@@ -182,6 +194,7 @@ class Hsiao:
         """
 
         TFluxN = self.generated_noise() + self.total_flux_without_noise()
+
         
         return TFluxN
 
@@ -200,6 +213,7 @@ class Hsiao:
         for i in range(len(self.bands)):
             
             if (self.datatype == 'Flux'):
+
                 for j in range(self.nb_images):
                     ax.plot( self.generated_time()[j, :, i], self.flux()[j][i][:], label = f'{self.bands[i]} : image {j}')
                     ax.set_ylabel('Flux (photon / s / cm2)')
@@ -226,6 +240,7 @@ class Hsiao:
 #################################################
 
     def dataframe(self):
+
         
         """
         
@@ -364,48 +379,9 @@ class Hsiao:
         
         
         return df_truth.T, df_data
-
-
-
-#############################
-    # def dataframe2(self):
-        
-    #     """
-        
-    #     Return:
-    #     -------
-        
-    #     df_truth: 'dataframe'   shape(1, 7)
-    #         Composed of data used to generate time samples and flux
-            
-    #     df_data: 'dataframe'  shape(number of observations, 7)
-    #         Composed  of generated data such as time samples for each bands and total flux with noise
-        
-    #     """
-    #     df_truth = pd.DataFrame(
-    #             [self.nb_images * self.amplitude * self.redshift +  self.pers,
-    #             self.nb_images, 
-    #             self.t0, 
-    #             self.amplitude,
-    #             self.redshift, 
-    #             self.pers], 
-    #             index = [ "ID", "images", "time origin", "amplitude", "redshift", "noise level" ]
-    #         )
-        
-    #     df_data = pd.DataFrame(data=
-    #         {   "ID": self.nb_images * self.amplitude* self.redshift + self.pers,
-    #             "images" : self.nb_images,
-    #             "time sample band g": self.generated_time()[-1, :, 0],
-    #             "total flux + noise band g": self.total_flux_with_noise()[0], 
-    #             "time sample band r": self.generated_time()[-1, :, 1],
-    #             "total flux + noise band r": self.total_flux_with_noise()[1],
-    #             "time sample band i": self.generated_time()[-1, :, 2],
-    #             "total flux + noise band i": self.total_flux_with_noise()[2],
-    #             }
-    #         )
-    #     return df_truth.T, df_data
     
     
     
 H=Hsiao(4, 1.0028, 0.0246, "Flux", np.array([1.38, 1.34, 1.45, 1.49]), np.array([0, 12.73, 21.37, 30.97]), 55000., 0.007, ID = 1, nobs=np.array([91, 91, 91]))
+
 
