@@ -17,3 +17,5 @@ docs/hsc_cosmos_35.sca
 *.pdf
 *.png
 *.fits
+*.npz
+*.npy
